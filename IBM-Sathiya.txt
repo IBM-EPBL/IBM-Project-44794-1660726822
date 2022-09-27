@@ -1,0 +1,90 @@
+#include <avr/io.h>
+
+
+long unsigned int lowIn;        
+
+long unsigned int pause = 500; 
+
+boolean lockLow = true;
+boolean takeLowTime; 
+
+const int pLM = A0;
+float LM, outputlm, adc; 
+int pirPin = 12;            
+int pirPos = 13;           
+int buz = 3;
+
+void setup(){
+  Serial.begin(9600);    
+  pinMode(pirPin, INPUT);
+  pinMode(pirPos, OUTPUT);
+  pinMode(buz,OUTPUT);
+  digitalWrite(pirPos, HIGH);
+  pinMode(pLM, INPUT); 
+
+  while (digitalRead(pirPin) == HIGH) {
+    delay(500);
+    Serial.print(".");     
+  }
+  Serial.println("SENSOR ACTIVE");
+}
+void lm35(){
+  adc = analogRead(pLM); 
+  LM = adc / 2.0479;
+  outputlm=adc*4.883;
+  if (LM >= 10)
+  {
+    analogWrite(buz,50);
+    Serial.println("Kecepatan=50");
+  }
+  if (LM >= 60)
+   {
+    analogWrite(buz,100); 
+    Serial.println("Kecepatan=100");
+  }
+   
+ }
+void loop(){
+  if(digitalRead(pirPin) == HIGH){ 
+    lm35();
+    if(lockLow){ 
+     
+      lockLow = false;           
+      Serial.println("---");
+      Serial.print("motion detected at ");
+      Serial.print(millis()/1000);
+      Serial.println(" sec");
+      delay(50);
+    }        
+    takeLowTime = true;
+  }
+
+  if(digitalRead(pirPin) == LOW){      
+    digitalWrite(buz,LOW);
+    if(takeLowTime){
+      lowIn = millis();          
+      takeLowTime = false; 
+    }
+   
+    
+   
+    if(!lockLow && millis() - lowIn > pause){
+      
+      lockLow = true;                       
+      Serial.print("motion ended at ");
+      Serial.print((millis() - pause)/1000);
+      Serial.println(" sec");
+      delay(50);
+    }
+  }
+  delay(1000);
+  Serial.print(", LM: ");
+  Serial.print(LM);
+  Serial.println(); 
+  delay(1000); 
+  Serial.print(", ADC: ");
+  Serial.print(adc);
+  Serial.println(); 
+  delay(1000); 
+}
+
